@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strconv"
+	"slices"
+	"sort"
 	"strings"
 )
 
@@ -33,34 +34,45 @@ func checkJoultageFile(fileName string) {
 			continue
 		}
 
-		firstNumber := ""
-		firstNumberPos := 0
-		joultageFound := false
+		joultage := 0
+		joultageLS := []int{}
+		joultageLSSorted := []int{}
 
-		for x := 9; x >= 1; x-- {
-			if joultageFound {
-				break
-			}
-			for i := 0; i < len(textLine); i++ {
-				if textLine[i:i+1] == fmt.Sprint(x) {
-					if firstNumber == "" {
-						firstNumber = fmt.Sprint(x)
-						firstNumberPos = i
-						continue
-					} else if firstNumberPos < i {
-						jStr := firstNumber + textLine[i:i+1]
-						j, err := strconv.Atoi(jStr)
-						if err != nil {
-							panic(err)
-						}
-						sumJoultage += j
-						joultageFound = true
-						fmt.Println(j)
-						break
-					}
-				}
+		for _, char := range textLine {
+			joultageLS = append(joultageLS, int(char-'0'))
+		}
+
+		joultageLSSorted = append(joultageLSSorted, joultageLS...)
+		sort.Ints(joultageLSSorted)
+		slices.Reverse(joultageLSSorted)
+
+		if joultageLSSorted[0] == joultageLSSorted[1] {
+			joultage = joultageLSSorted[0] * 10 + joultageLSSorted[1]
+		} else {
+			indexFirstNumber := slices.IndexFunc(joultageLS, func(i int) bool {
+				return i == joultageLSSorted[0]
+			})
+			indexSecondNumber := slices.IndexFunc(joultageLS, func(i int) bool {
+				return i == joultageLSSorted[1]
+			})
+
+			if indexFirstNumber < indexSecondNumber {
+				joultage = joultageLSSorted[0] * 10 + joultageLSSorted[1]
+			} else if indexFirstNumber == len(joultageLSSorted)-1 {
+				joultage = joultageLSSorted[1] * 10 + joultageLSSorted[0]
+			} else {
+				subJoultageLS := joultageLS[indexFirstNumber+1:]
+				subJoultageLSSorted := []int{}
+				subJoultageLSSorted = append(subJoultageLSSorted, subJoultageLS...)
+				sort.Ints(subJoultageLSSorted)
+				slices.Reverse(subJoultageLSSorted)
+
+				joultage = joultageLSSorted[0] * 10 + subJoultageLSSorted[0]
 			}
 		}
+
+		sumJoultage += joultage
+		// fmt.Println(textLine, joultageLS, joultageLSSorted, joultage)
 	}
 
 	fmt.Printf("FileName: %s, SumJoultage: %v\n", fileName, sumJoultage)
@@ -68,5 +80,5 @@ func checkJoultageFile(fileName string) {
 
 func main() {
 	checkJoultageFile("input_example.txt")
-	// checkJoultageFile("input_1.txt")
+	checkJoultageFile("input_1.txt")
 }
